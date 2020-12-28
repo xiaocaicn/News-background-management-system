@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>评论列表</title>
+  <link rel="stylesheet" href="./libs/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./css/reset.css">
+  <link rel="stylesheet" href="./css/iconfont.css">
+  <link rel="stylesheet" href="./css/main.css">
+  <link rel="stylesheet" href="./libs/layui/css/layui.css">
+  <script src="./libs/jquery/jquery.min.js"></script>
+  <script src="./libs/layui/layui.js"></script>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="common_title">
+      评论列表
+    </div>
+    <div class="container-fluid common_con">
+      <table class="table table-striped table-bordered table-hover mp20">
+        <thead>
+          <tr>
+            <th>作者</th>
+            <th>评论</th>
+            <th>评论在</th>
+            <th>提交于</th>
+            <th>状态</th>
+            <th class="text-center" width="100">操作</th>
+          </tr>
+        </thead>
+        <tbody id="list_bd">
+        </tbody>
+      </table>
+      <div id="list_page" style="padding: 0 25%;">
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/http.js"></script>
+  <script src="./libs/art-template/template-web.js"></script>
+  <script id="commons" type="text/html">
+    {{each data}}
+    {{if $value.state == '已拒绝'}}
+      <tr class="danger">
+    {{else}}
+      <tr>
+    {{/if}}
+      <td>{{$value.title}}</td>
+      <td>{{$value.content}}</td>
+      <td>{{$value.author}}</td>
+      <td>{{$value.date}}{{$value.time}}</td>
+      <td>{{$value.state}}</td>
+      <td class="text-center">
+        <a href="javascript:void(0);;" class="btn btn-info btn-xs">批准</a>
+        <a href="javascript:void(0);;" class="btn btn-danger btn-xs">删除</a>
+      </td>
+    </tr>
+    {{/each}}
+  </script>
+  <script>
+    $(function () {
+      // 获取评论接口数据
+      get_list();
+
+      page_list();
+    })
+
+    function get_list(curr, limit) {
+      let parmas = {
+        page: curr,
+        perpage: limit
+      }
+      myAjax('get', '/admin/comment/search', parmas, function (resData) {
+        // console.log(resData);
+        let resHtml = template('commons', resData.data);
+        $('#list_bd').html(resHtml);
+        page_list(resData.data.totalCount, curr);
+      })
+    }
+
+    function page_list(totalCount, curr) {
+      layui.use('laypage', function () {
+        // 获取分页对象
+        var laypage = layui.laypage;
+
+        laypage.render({
+          // 1.0 将分页样式渲染到指定的div中
+          elem: 'list_page',
+          count: totalCount,
+          curr: curr,
+          limit: 6,
+          jump: function (obj, first) {
+            // obj.curr表示用户点击的当前页码
+            // obj.limit表示此分页控件每页显示的条数
+            // first 第一次将来是true，用户点击页码触发的时候 undefined
+            if (!first) {
+              get_list(obj.curr, obj.limit);
+            }
+          }
+        })
+      });
+    }
+
+  </script>
+</body>
+
+</html>
