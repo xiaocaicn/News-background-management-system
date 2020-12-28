@@ -1,52 +1,38 @@
 $(function () {
-    // 1.0 给form表单注册submit事件
-    form_submit();
-})
-function form_submit() {
-    // 1.0 给form表单注册submit事件
-    $('#login_form').on('submit', function (e) {
-        // 2.0 阻止form表单默认提交事件
+    // 实现登录逻辑
+    $('#login_form').submit(function (e) {
+        // 阻止表单默认提交行为
         e.preventDefault();
 
-        // 3.0 序列化表单中用户名和密码数据为查询字符串格式数据
-        let params = $('#login_form').serialize();
-
-        let index = null;
-        // 4.0 发出ajax请求
+        // 2.0 通过jquery方法自动获取表单数据
+        let parms = $('#login_form').serialize(); // username=&password=
+        var index ;
         $.ajax({
             url: 'http://localhost:8080/api/v1/admin/user/login',
-            type: 'POST',
-            data: params,
-            beforeSend: function () {
-                // 弹出正在登陆中提示.....
-                index = layer.load();
+            type: 'post',
+            data: parms,
+            beforeSend:function(){
+                // 弹出加载层
+               index = layer.load();
             },
-            complete: function () {
-                // 关闭正在登陆中提示.....                    
-                layer.close(index);
+            // 完成以后关闭弹出层
+            complete:function(){
+                layer.close(index);  
             },
             success: function (resData) {
-                // 5.0 服务器响应处理
-                // 5.0.1 如果服务器响应状态码不等于200，则表示处理有异常，将异常信息告知用户
-                if (resData.code !== 200) {
-                    layer.msg(resData.msg);
-                    return;//阻止后面代码继续执行
+                // resData的结构：{code:200,msg:'',token:'xxxx'}
+                // 判断如果状态不等于200则提示错误
+                if (resData.code != 200) {
+                    alert(resData.msg);
+                    return;
                 }
 
-                /*
-                5.0.2 服务器响应状态码为200，表示登录成功，服务器响应数据格式：
-                将token的值保存到localStorage中
-                    {
-                        "code":200,
-                        "msg":"登录成功",
-                        "token":"xxx"
-                    }
-                */
-                localStorage.setItem('bigNews_token', resData.token);
+                // 将token保存到本地存储中
+                localStorage.setItem('bignews_token',resData.token);
 
-                // 5.0.3 跳转到首页
-                window.location = './index.html'
+                // 跳转到首页
+                window.location = './index.html';
             }
         })
     })
-}
+})

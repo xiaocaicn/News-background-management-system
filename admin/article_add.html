@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,8 +10,10 @@
     <link rel="stylesheet" href="./css/reset.css">
     <link rel="stylesheet" href="./css/iconfont.css">
     <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./libs/layui/css/layui.css">
     <!-- jq -->
     <script src="./libs/jquery/jquery.min.js"></script>
+    <script src="./libs/layui/layui.js"></script>
 </head>
 
 <body>
@@ -31,8 +32,8 @@
                 <div class="form-group">
                     <label for="inputCover" class="col-sm-2 control-label">文章封面：</label>
                     <div class="col-sm-10">
-                        <img src="./images/2.jpg" class="article_cover">
-                        <input name="cover" type="file" id="inputCover" onchange="changeCoverImage()">
+                        <img id="coverImg" src="./images/2.jpg" class="article_cover">
+                        <input name="cover" type="file" id="inputCover" onchange="changeImg()">
                     </div>
                 </div>
                 <div class="form-group">
@@ -46,7 +47,7 @@
                 <div class="form-group">
                     <label class="col-sm-2 control-label">发布时间：</label>
                     <div class="col-sm-4">
-                        <input id="articleDate" name='date' class="jeinput" type="text" placeholder="请选择发布日期"  readonly>
+                        <input id="articleDate" name='date' class="jeinput" type="text" placeholder="请选择发布日期" readonly>
                     </div>
                 </div>
                 <div class="form-group">
@@ -58,12 +59,141 @@
                 </div>
                 <div class="form-group">
                     <div class="col-sm-offset-2 col-sm-10">
-                        <button type="submit" class="btn btn-success btn-edit" onclick="return saveArticle('已发布')">修改</button>
-                        <button type="submit" class="btn btn-default btn-draft" onclick="return saveArticle('草稿')">存为草稿</button>
+                        <button id="save_p" type="submit" class="btn btn-success btn-edit">发布</button>
+
+                        <button id="save_c" type="submit" class="btn btn-default btn-draft">存为草稿</button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
+
+    <script src="./js/http.js"></script>
+    <script src="./libs/art-template/template-web.js"></script>
+    <!-- 3.0 导入富文本编辑器 -->
+    <script src="./libs/tinymce_5.5.1/tinymce.min.js"></script>
+    <!-- 1.0 定义文章分类的模板 -->
+    <script id="art_cate" type="text/html">
+        {{each data}}
+            <option value="{{$value.id}}">{{$value.name}}</option>
+        {{/each}}
+    </script>
+    <script>
+        $(function () {
+            get_cate_list();
+
+            date_render();
+
+            init_textarea();
+
+            // 给发布按钮注册一个点击事件
+            $('#save_p').click(function (e) {
+                // 阻止浏览器对于表单的默认提交行为
+                e.preventDefault();
+
+                // 文章发布
+                save('已发布');
+            })
+
+
+            // 给存为草稿按钮注册点击事件
+            $('#save_c').click(function (e) {
+                // 阻止浏览器对于表单的默认提交行为
+                e.preventDefault();
+
+                // 文章发布为草稿
+                save('');
+            })
+
+        })
+
+        // 1.0 获取文章分类下拉框数据
+        function get_cate_list() {
+            myAjax('get', '/admin/category/list', null, function (resData) {
+                /* 
+                 resData格式：{
+                                "code": 200,
+                                "msg": "获取成功",
+                                "data": [{
+                                    "id": 1,
+                                    "name": "爱生活",
+                                    "slug": "热爱生活"
+                                }]
+                            }
+                */
+                let resHtml = template('art_cate', resData);
+
+                $('#category').html(resHtml);
+            })
+        }
+
+        // 2.0 初始化日期选择控件
+        function date_render() {
+            layui.use('laydate', function () {
+                var laydate = layui.laydate;
+                //  渲染日期面板到 id=articleDate 的文本框中
+                laydate.render({
+                    elem: '#articleDate' //指定元素
+                });
+
+            });
+        }
+
+        // 3.0 初始化富文本编辑器
+        function init_textarea() {
+            tinymce.init({
+                selector: '#articleContent',
+                language: 'zh_CN' // 通过这个就会自动找到 tinymce_5.5.1下面的langs中的zh_CN.js
+            });
+        }
+
+        // 4.0 定义文件控件的选择事件
+        function changeImg() {
+            // 4.0.1 获取 file控件中所选择的图片
+            let file = document.querySelector('#inputCover').files[0];
+
+            // 4.0.2 将文件生成一个本地可以访问到的路径
+            let filePath = URL.createObjectURL(file);
+
+            // alert(filePath)
+            // 4.0.3 将本地路径设置给img 的src
+            $('#coverImg').attr('src', filePath);
+
+        }
+
+        // 5.0 实现文章发布功能
+        function save(type) {
+            // 5.0.1 收集页面上用户输入的数据
+            let title = $('#inputTitle').val();
+            let cover = document.querySelector('#inputCover').files[0];
+            let categoryId = $('#category').val();
+            let date = $('#articleDate').val();
+            let content = tinyMCE.editors['articleContent'].getContent();
+            let state = type;
+
+
+            //  5.0.2 将数据包装成 FormData类型的数据
+            let formData = new FormData();
+            formData.append('title', title);
+            formData.append('cover', cover);
+            formData.append('categoryId', categoryId);
+            formData.append('date', date);
+            formData.append('content', content);
+            formData.append('state', state);
+
+
+            // 5.0.3 发送ajax请求将formdata数据提交给服务器
+            formData_type_ajax('POST', '/admin/article/publish', formData, function (resData) {
+                 if(resData.code !==200){
+                     alert(resData.msg);
+                     return;
+                 }
+
+                // 如果是成功的话，当前页面应该跳转到文章列表
+                 window.location = './article_list.html';
+            })
+        }
+    </script>
 </body>
+
 </html>

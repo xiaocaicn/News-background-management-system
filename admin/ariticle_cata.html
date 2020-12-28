@@ -20,9 +20,10 @@
             文章类别管理
         </div>
         <div class="container-fluid common_con">
-            <div class="row" style="margin-top: 10px;">           
-                <div class="col-xs-offset-10 col-sm-offset-10 col-md-offset-10 col-lg-offset-10 col-xs-2 col-sm-2 col-md-2 col-lg-2">
-                    <a href="javascript:void(0)" class="btn btn-success" id="xinzengfenlei" data-toggle="modal"
+            <div class="row" style="margin-top: 10px;">
+                <div
+                    class="col-xs-offset-10 col-sm-offset-10 col-md-offset-10 col-lg-offset-10 col-xs-2 col-sm-2 col-md-2 col-lg-2">
+                    <a href="javascript:void(0)" class="btn btn-success" id="new_cata" data-toggle="modal"
                         data-target="#myModal">新增分类</a>
                 </div>
             </div>
@@ -34,24 +35,8 @@
                         <th class="text-center" width="100">操作</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>爱生活</td>
-                        <td>热爱生活</td>
-                        <td class="text-center">
-                            <a href="javascript:void(0)" data-toggle="modal" class=" btn btn-info btn-xs">编辑</a>
-                            <a href="javascript:void(0)" class="btn btn-danger btn-xs">删除</a>
-                        </td>
-                    </tr>
+                <tbody id="cate">
                 </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="3" class="text-center">
-                            <a href="javascript:void(0)" class="btn btn-success" id="xinzengfenlei" data-toggle="modal"
-                                data-target="#myModal">新增分类</a>
-                        </td>
-                    </tr>
-                </tfoot>
             </table>
         </div>
     </div>
@@ -76,15 +61,65 @@
                             <input type="text" class="form-control" id="slug" placeholder="分类别名">
                         </div>
                         <div class="modal-footer">
-                            <button type="button" data-dismiss="modal" class="btn btn-default" >取消</button>
-                            <button type="button" class="btn btn-primary btn_opt" >保存</button>
+                            <button type="button" data-dismiss="modal" class="btn btn-default">取消</button>
+                            <button type="button" onclick="new_cata()" class="btn btn-primary btn_opt">保存</button>
                         </div>
                     </div>
                 </div>
-              
+
             </div>
         </div>
 
     </div>
+    <script src="./libs/art-template/template-web.js"></script>
+    <script id=ariticle_cate type="text/html">
+        {{each data}}
+        <tr>
+            <td>{{$value.name}}</td>
+            <td>{{$value.slug}}</td>
+            <td class="text-center">
+                <a href="javascript:void(0)" data-toggle="modal" class=" btn btn-info btn-xs">编辑</a>
+                <a href="javascript:void(0)" class="btn btn-danger btn-xs">删除</a>
+            </td>
+        </tr>
+        {{/each}}
+    </script>
+    <script src="./js/http.js"></script>
+    <script>
+        $(function () {
+            get_cate();
+        })
+        function get_cate() {
+            // 获取文章类别列表
+            myAjax('get', '/admin/category/list', null, function (resData) {
+                let resHtml = template('ariticle_cate', resData);
+                // console.log(resHtml);
+                $('#cate').html(resHtml);
+            })
+        }
+        // 新增事件
+        function new_cata() {
+            let name = $('#name').val();
+            let slug = $('#slug').val();
+            let parmas = {
+                name: name,
+                slug: slug
+            }
+            myAjax('post', '/admin/category/add', parmas, function (resData) {
+                if (resData.code !== 200) {
+                    alert(resData.msg);
+                    return;
+                }
+                // 关闭窗口
+                $('#myModal').modal('hide');
+                // 清空input
+                $('#name').val('');
+                $('#slug').val('');
+
+                get_cate();
+            })
+        }
+    </script>
+</body>
 
 </html>

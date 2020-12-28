@@ -10,7 +10,9 @@
     <link rel="stylesheet" href="./css/reset.css">
     <link rel="stylesheet" href="./css/iconfont.css">
     <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./libs/layui/css/layui.css">
     <script src="./libs/jquery/jquery.min.js"></script>
+    <script src="./libs/layui/layui.js"></script>
 </head>
 
 <body>
@@ -25,10 +27,7 @@
                         <input type="text" id="aname" class="form-control input-sm" placeholder="输入文章标题...">
                         <select id="selCategory" name="" class="form-control input-sm">
                             <option value="">所有分类</option>
-                            <option>未分类</option>
-                            <option>奇趣事</option>
-                            <option>会生活</option>
-                            <option>爱旅行</option>
+
                         </select>
                         <select id="selStatus" name="" class="form-control input-sm">
                             <option value="">所有状态</option>
@@ -39,7 +38,7 @@
                     </div>
                 </div>
                 <div class="col-xs-6">
-                    <a href="article_release.html" class="btn btn-success btn-sm pull-right" id="release_btn">发表文章</a>
+                    <a href="article_add.html" class="btn btn-success btn-sm pull-right" id="release_btn">发表文章</a>
                 </div>
             </div>
             <table class="table table-striped table-bordered table-hover mp20">
@@ -53,7 +52,7 @@
                         <th class="text-center" width="100">操作</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="tbody">
                     <tr>
                         <td>王积千造统最头</td>
                         <td>杰克</td>
@@ -67,10 +66,128 @@
                     </tr>
                 </tbody>
             </table>
-            <div class="row text-center">
+            <div id="test1" class="row text-center">
             </div>
         </div>
     </div>
+
+    <!-- 1.0 导入模板引擎 -->
+    <script src="./libs/art-template/template-web.js"></script>
+    <!-- 2.0 定义模板 -->
+    <script id="art_list" type="text/html">
+        {{each data}}
+        <tr>
+            <td>{{$value.title}}</td>
+            <td>{{$value.author}}</td>
+            <td>{{$value.category}}</td>
+            <td class="text-center">{{$value.date}}</td>
+            <td class="text-center">{{$value.state}}</td>
+            <td class="text-center">
+                <a href="article_edit.html?id={{$value.id}}" class="btn btn-default btn-xs">编辑</a>
+                <a href="javascript:void(0);" onclick="art_del({{$value.id}})" class="btn btn-danger btn-xs delete">删除</a>
+            </td>
+        </tr>
+        {{/each}}
+    </script>
+
+    <!-- 3.0。1 定义文章分类模板 -->
+    <script id="art_cate" type="text/html">
+        {{each data}}
+            <option value="{{$value.id}}">{{$value.name}}</option>
+        {{/each}}
+    </script>
+    <script src="./js/http.js"></script>
+    <script>
+        $(function () {
+            // 1.0 获取文章数据列表
+            get_list();
+
+            // 3.0 调用获取文章分类数据
+            get_cate_list();
+        })
+
+        // 1.0 定义方法
+        function get_list(curr, perpage) {
+            let parmas = {
+                key: $('#aname').val(),
+                type: $('#selCategory').val(),
+                state: $('#selStatus').val(),
+                page: curr,
+                perpage: perpage
+            }
+
+            // console.log(curr)
+
+            $.ajax({
+                type: 'GET',
+                url: 'http://localhost:8080/api/v1/admin/article/query',
+                data: parmas,
+                headers: {
+                    "Authorization": localStorage.getItem('bignews_token')
+                },
+                success: function (resData) {
+                    // console.log(resData);
+                    let resHtml = template('art_list', resData.data);
+
+                    // 将数据渲染到页面中
+                    $('#tbody').html(resHtml);
+
+                    // 获取到数据总条数以后调用分页生成控件
+                    page_render(resData.data.totalCount, curr);
+                }
+            })
+        }
+
+        // 2.0 生成一个分页控件
+        function page_render(totalCount, currpage) {
+
+            layui.use('laypage', function () {
+                // 获取到分页控件对象
+                var laypage = layui.laypage;
+                laypage.render({
+                    elem: 'test1', // 表示分页控件要渲染到id为test1的页面元素中
+                    count: totalCount, // 总数据条数
+                    limit: 6,   //每页显示的条数
+                    curr: currpage,
+                    jump: function (obj, first) {
+                        //  alert(obj.curr);
+                        // console.log(obj.limit);
+                        //  alert(first)
+                        if (!first) {
+                            get_list(obj.curr, obj.limit);
+                        }
+                    }
+                });
+
+            });
+        }
+
+        // 3.0 获取到文章分类数据
+        function get_cate_list() {
+            $.ajax({
+                type: 'get',
+                url: 'http://localhost:8080/api/v1/admin/category/list',
+                data: null,
+                headers: {
+                    "Authorization": localStorage.getItem('bignews_token')
+                },
+                success: function (resData) {
+                    let resHtml = template('art_cate', resData);
+                    // 追加到select元素中
+                    $('#selCategory').append(resHtml);
+                }
+            })
+        }
+
+        function art_del(d_id) {
+            console.log(d_id);
+            myAjax('POST', '/admin/article/delete', {id: d_id}, function (resData) {
+                if (resData.code == 200) {
+                    get_list();
+                }
+            })
+        }
+    </script>
 </body>
 
 </html>
