@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="css/iconfont.css">
     <link rel="stylesheet" href="css/main.css">
     <script src="./libs/jquery/jquery.min.js"></script>
-    <script type="text/javascript" src="./libs/echarts.js"></script>
+    <script type="text/javascript" src="./libs/echart/echarts.min.js"></script>
 </head>
 
 <body>
@@ -19,25 +19,25 @@
         <div class="row spannel_list">
             <div class="col-sm-3 col-xs-6">
                 <div class="spannel">
-                    <em>10015</em><span>篇</span>
+                    <em id="all">10015</em><span>篇</span>
                     <b>总文章数</b>
                 </div>
             </div>
             <div class="col-sm-3 col-xs-6">
                 <div class="spannel scolor01">
-                    <em>123</em><span>篇</span>
+                    <em id="new">123</em><span>篇</span>
                     <b>日新增文章数</b>
                 </div>
             </div>
             <div class="col-sm-3 col-xs-6">
                 <div class="spannel scolor02">
-                    <em>35</em><span>条</span>
+                    <em id="p_all">35</em><span>条</span>
                     <b>评论总数</b>
                 </div>
             </div>
             <div class="col-sm-3 col-xs-6">
                 <div class="spannel scolor03">
-                    <em>123</em><span>条</span>
+                    <em id="p_new">123</em><span>条</span>
                     <b>日新增评论数</b>
                 </div>
             </div>
@@ -58,6 +58,144 @@
     <div class="container-fluid">
         <div class="column_pannel" id="column_show"></div>
     </div>
+    <script src="./js/http.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            get_data();
+            // pic_list();
+            myAjax('get', '/admin/data/article', null, function (resData) {
+                let date = [];
+                let count = [];
+                date = resData.date.map(item => item.date);
+                count = resData.date.map(item => item.count);
+                pic_list(date, count);
+            })
+            myAjax('get', '/admin/data/category', null, function (resData) {
+                let names = resData.date.map(item => item.name);;
+                let datas = resData.date.map(item => ({name: item.name, value: item.articles}));
+                pic_pie(names, datas);
+            })
+        })
+
+        function get_data() {
+            myAjax('get', '/admin/data/info', null, function (resData) {
+                /* resData格式：
+                    {
+                        "totalArticle": 223,
+                        "dayArticle": 18,
+                        "totalComment": 7999,
+                        "dayComment": 36
+                    }
+                */
+
+                // 将数据一一赋值给页面对应的元素
+                $('#all').html(resData.totalArticle);
+                $('#new').html(resData.dayArticle);
+                $('#p_all').html(resData.totalComment);
+                $('#p_new').html(resData.dayComment);
+            })
+        }
+        function pic_list(date, count) {
+            var myChart = echarts.init(document.getElementById('curve_show'));
+            option = {
+                title: {
+                    text: '日文章新增'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        label: {
+                            backgroundColor: '#6a7985'
+                        }
+                    }
+                },
+                legend: {
+                    data: ['日文章新增']
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {}
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: [
+                    {
+                        type: 'category',
+                        boundaryGap: false,
+                        data: date
+                    }
+                ],
+                yAxis: [
+                    {
+                        type: 'value'
+                    }
+                ],
+                series: [
+                    {
+                        name: '日文章新增',
+                        type: 'line',
+                        stack: '总量',
+                        smooth: true,
+                        label: {
+                            normal: {
+                                show: true,
+                                position: 'top'
+                            }
+                        },
+                        areaStyle: {},
+                        data: count
+                    }
+                ]
+            };
+            // 使用刚指定的配置项和数据显示图表。
+            myChart.setOption(option);
+        }
+        function pic_pie(date, count) {
+            var myChart = echarts.init(document.getElementById('pie_show'));
+            option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b}: {c} ({d}%)'
+                },
+                legend: {
+                    left: 10,
+                    data: date
+                },
+                series: [
+                    {
+                        name: '访问来源',
+                        type: 'pie',
+                        radius: ['50%', '70%'],
+                        avoidLabelOverlap: false,
+                        label: {
+                            show: false,
+                            position: 'center'
+                        },
+                        emphasis: {
+                            label: {
+                                show: true,
+                                fontSize: '30',
+                                fontWeight: 'bold'
+                            }
+                        },
+                        labelLine: {
+                            show: false
+                        },
+                        data: count
+                    }
+                ]
+            };
+            // 使用刚指定的配置项和数据显示图表。
+            myChart.setOption(option);
+        }
+
+    </script>
 </body>
 
 </html>
